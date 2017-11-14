@@ -1,7 +1,8 @@
 ### Fastest TCP Server Competition!
 
 ##### Instructions:
-
+* go run *.go
+* test: echo -n "shutdown" | nc localhost 3280
 ###### Write a server that adheres to the below requirements. If any of the requirements are NOT met, the submission will be disqualified from the official judging.  You're free to run the code anywhere you'd like; ie vm, docker, cloud, etc.
 
 * <b>Complete</b>: Responds on port 3280.

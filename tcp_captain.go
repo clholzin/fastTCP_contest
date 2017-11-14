@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -22,17 +23,54 @@ const (
 )
 
 type (
-	conn_count int
+	 count int
+	 Duration int
 )
 
 var (
-	conn_counter   conn_count
-	incoming_buf   = make([]byte, 1024)
-	g_CachInputMap bytes.Buffer
+	connCounter         count
+	durationVal         Duration
+	incomingBuf   =     make([]byte, 1024)
+	gCachInputMap       bytes.Buffer
+	counter             struct{
+						   total count
+						   totalSince count
+					    }
+	timer			    struct{
+		 				   fiveSecInterval time.Timer
+		 				   tenSecInterval time.Timer
+		                }
+	fileData            os.File
+	err 				error
 )
+
+func init(){
+
+	cleanLogs()
+	fileData, err = createFile()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
 func main() {
 	startTCP()
+}
+
+func interval5(){
+	//do read out for uniq numbers in this interval of 10 seconds
+	// do read out for uniq numbers total for server duration
+	durationVal = 5e3
+	time.sleep(durationVal)
+	// do the work
+	interval5()
+}
+
+func interval10(){
+	durationVal = 10e3
+	time.sleep(durationVal)
+     // do the work
+	interval10()
 }
 
 func startTCP() {
@@ -65,21 +103,21 @@ func handleRequest(conn net.Conn) {
 	}()
 
 
-	if conn_counter == 6 {
+	if connCounter == 6 {
 		conn.Close()
 		fmt.Println("Error: To many connections")
 		conn.Write([]byte("Error: To many connections"))
 		return
 	}
-	conn_counter = conn_counter + 1
+	connCounter = connCounter + 1
 	// Read the incoming connection into the buffer.
-	buflen, err := conn.Read(incoming_buf)
+	buflen, err := conn.Read(incomingBuf)
 	if err != nil {
 		fmt.Println("Error reading:", err.Error())
 		conn.Close()
 	} else {
 		if buflen > 0 {
-			 s_Value := string(incoming_buf[:buflen])
+			 s_Value := string(incomingBuf[:buflen])
 			if strings.ToLower(s_Value) == APP_SHUTDOWN {
 				conn.Write([]byte("Bye Bye monte\n"))
 				conn.Close()
@@ -89,16 +127,16 @@ func handleRequest(conn net.Conn) {
 				conn.Close()
 				return
 			}
-			cleanBufIndex, err := checkLeadingZeros(incoming_buf)
+			cleanBufIndex, err := checkLeadingZeros(incomingBuf)
 			if err != nil {
 				conn.Write([]byte(err.Error()))
 				panic(err)
 				return
 			}
 			// Send a response back to person contacting us.
-			updated_incoming_buf := incoming_buf[cleanBufIndex:]
-			g_CachInputMap.Write(updated_incoming_buf)
-			conn.Write(updated_incoming_buf)
+			updated_incomingBuf := incomingBuf[cleanBufIndex:]
+			gCachInputMap.Write(updated_incomingBuf)
+			conn.Write(updated_incomingBuf)
 		} else {
 			conn.Write([]byte("Failed as input is empty"))
 			conn.Close()
@@ -161,4 +199,29 @@ func RetrieveContents(name string) ([]byte, error) {
 		return nil, err
 	}
 	return contents, nil
+}
+
+func createFile() (*os.File,error){
+	f, err := os.Create("data.0.log")//os.OpenFile("data.0.log", os.O_CREATE, 0755)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return f,err
+}
+
+func cleanLogs() (){
+	files, err := readDirNames(APP_BASE_PATH)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	for _,value := range files {
+	    if strings.Contains(value,"data.") {
+			// remove file
+			if err = os.Remove(value); err != nil {
+				fmt.Println(err)
+			}
+		}
+	}
+	// remove any data logs in this working directory
 }
