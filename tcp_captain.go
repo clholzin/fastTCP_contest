@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -11,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"io/ioutil"
 )
 
 const (
@@ -49,20 +49,13 @@ func init() {
 	fileData.cleanLogs()
 	err = fileData.createLog()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 	}
 }
 
 func main() {
 	startTCP()
 }
-
-func getCurrentFile() {
-
-}
-
-
-
 
 
 func startTCP() {
@@ -73,6 +66,7 @@ func startTCP() {
 		os.Exit(1)
 	}
 	interval5()
+	interval10()
 	// Close the listener when the application closes.
 	defer l.Close()
 	fmt.Println("Listening on " + CONN_HOST + ":" + CONN_PORT)
@@ -94,7 +88,12 @@ func interval5() {
 	durationVal = 5 * time.Second
 	go func(){
 		time.Sleep(durationVal)
-		fmt.Println("Testing interval")
+		if gCachInputMap.Len() > 0 {
+			fmt.Printf("\r Total unique numbers this session: %d | Total unique numbers received: %d",bytes.Count(gCachInputMap.Bytes(), []byte("\n")),fileData.countAllLogs())
+		}else{
+			fmt.Printf("\r Total unique numbers this session: %d | Total unique numbers received: %d",0,fileData.countAllLogs())
+		}
+
 		// do the work
 		interval5()
 	}()
@@ -107,7 +106,8 @@ func interval10() {
 	go func(){
 		time.Sleep(durationVal)
 		fileData.fileCount++//count and create new file
-		// do the work
+		gCachInputMap.Reset()// drop cache for this session
+		fileData.createLog()
 		if fileData.fileCount > 10 {
 			return
 		}
@@ -116,9 +116,6 @@ func interval10() {
 
 }
 
-func getCounts(){
-
-}
 // Handles incoming requests.
 func handleRequest(conn net.Conn) {
 	// Close the connection when you're done with it.
@@ -131,7 +128,7 @@ func handleRequest(conn net.Conn) {
 		conn.Write([]byte("Error: To many connections"))
 		return
 	}
-	connCounter = connCounter + 1
+	connCounter++
 	// Read the incoming connection into the buffer.
 	buflen, err := conn.Read(incomingBuf)//read connection data to incomingBuf
 	if err != nil {
@@ -162,7 +159,10 @@ func handleRequest(conn net.Conn) {
 			}
 
 			updated_incomingBuf = append(updated_incomingBuf,'\n')
-
+			/** Todo
+			   Collect previous files numbers and compare all numbers always
+			   will need another buffer
+			 */
 			/** cache all results for quick search while server is alive **/
 			gCachInputMap.Write(updated_incomingBuf)
 
@@ -182,6 +182,9 @@ func handleRequest(conn net.Conn) {
 			conn.Write([]byte("Failed as input is empty\n"))
 
 		}
+	}
+	if connCounter > 0 {
+		connCounter--
 	}
 }
 
@@ -225,23 +228,6 @@ func readDirNames(dirname string) ([]string, error) {
 	return names, nil
 }
 
-func RetrieveContents(name string) ([]byte, error) {
-	fmt.Printf("retrieve file data %s \n", name)
-	f, err := os.OpenFile(name, os.O_RDONLY, 0)
-	defer f.Close()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v, Can't open %s: error %\n", os.Args[0], name, err)
-		os.Exit(1)
-		return nil, err
-	}
-	contents, err := ioutil.ReadAll(f)
-	if err != nil {
-		log.Fatal(err)
-		return nil, err
-	}
-	return contents, nil
-}
-
 func (f *logSt)createLog() error {
 	// create initial data log
 	fileName  := fmt.Sprintf("data.%d.log",f.fileCount)
@@ -256,7 +242,7 @@ func (f *logSt)cleanLogs() {
 	// remove any data logs in this working directory
 	files, err := readDirNames(APP_BASE_PATH)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 		return
 	}
 	for _, value := range files {
@@ -268,4 +254,31 @@ func (f *logSt)cleanLogs() {
 		}
 	}
 
+}
+
+func (f *logSt)countAllLogs() (n int) {
+	// remove any data logs in this working directory
+	files, err := readDirNames(APP_BASE_PATH)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, value := range files {
+		if strings.Contains(value, "data.") {
+			logFile,err := os.Open(value)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			//read
+			fileGuts,err := ioutil.ReadAll(logFile)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			//close
+			n += bytes.Count(fileGuts, []byte("\n"))//count\
+			logFile.Close()
+		}
+	}
+	return n
 }
