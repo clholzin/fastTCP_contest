@@ -7,10 +7,10 @@ import (
 	"net"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 	"io/ioutil"
+	"sync"
 )
 
 const (
@@ -26,10 +26,11 @@ type (
 	count    int
 	Duration int
 	File     *os.File
-	counter  struct {
+	incomingBufData []byte
+	/*counter  struct {
 		total      count
 		totalSince count
-	}
+	}*/
 	logSt struct {
 		fileCount count
 	}
@@ -37,8 +38,9 @@ type (
 
 var (
 	connCounter   count
-	durationVal   time.Duration
-	incomingBuf   = make([]byte, 1024)
+	inputRecievedCounter   int
+	//durationVal   time.Duration
+	keptValuesBuf bytes.Buffer
 	gCachInputMap bytes.Buffer
 	fileData      = new(logSt)
 	err           error
@@ -57,7 +59,6 @@ func main() {
 	startTCP()
 }
 
-
 func startTCP() {
 	// Listen for incoming connections.
 	l, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
@@ -73,6 +74,7 @@ func startTCP() {
 	for {
 		// Listen for an incoming connection.
 		conn, err := l.Accept()
+
 		if err != nil {
 			fmt.Println("Error accepting: ", err.Error())
 			os.Exit(1)
@@ -85,47 +87,50 @@ func startTCP() {
 func interval5() {
 	//do read out for uniq numbers in this interval of 10 seconds
 	// do read out for uniq numbers total for server duration
-	durationVal = 5 * time.Second
-	go func(){
-		time.Sleep(durationVal)
-		if gCachInputMap.Len() > 0 {
-			fmt.Printf("\r Total unique numbers this session: %d | Total unique numbers received: %d",bytes.Count(gCachInputMap.Bytes(), []byte("\n")),fileData.countAllLogs())
-		}else{
-			fmt.Printf("\r Total unique numbers this session: %d | Total unique numbers received: %d",0,fileData.countAllLogs())
-		}
-
+	 go func(){
+		//if gCachInputMap.Len() > 0 {
+			fmt.Printf("Total unique numbers this session: %d | Total unique numbers received: %d | Total Recieved %d\n",bytes.Count(gCachInputMap.Bytes(), []byte("\n")),fileData.countAllLogs(),inputRecievedCounter)
+		//}else{
+		//	fmt.Printf("Total unique numbers this session: %d | Total unique numbers received: %d | Total Recieved %d\n",0,fileData.countAllLogs(),inputRecievedCounter)
+		//}
+		time.Sleep(5 * time.Second)
 		// do the work
 		interval5()
-	}()
+	 }()
 }
 
 func interval10() {
 	//Every 10 seconds, the log should rotate and increment the number in the name,
 	//all while only writing unique numbers. Example: data.0.log -> data.1.log -> data.2.log.
-	durationVal = 10 * time.Second
-	go func(){
-		time.Sleep(durationVal)
+	 go func(){
 		fileData.fileCount++//count and create new file
 		gCachInputMap.Reset()// drop cache for this session
 		fileData.createLog()
 		if fileData.fileCount > 10 {
 			return
 		}
+		time.Sleep(10 * time.Second)
 		interval10()
-	}()
+	 }()
 
 }
 
 // Handles incoming requests.
 func handleRequest(conn net.Conn) {
+
+	incomingBuf := make(incomingBufData, 1024)
+	lineBreakByteBuf := incomingBufData("\n")
+	var keptValuesBuf  bytes.Buffer
+	var wg sync.WaitGroup
+	wg.Add(1)
 	// Close the connection when you're done with it.
-	defer conn.Close()
-	defer func() {
+    defer func(){
+		conn.Close()
 		recover()
 	}()
 
 	if connCounter == 6 {
-		conn.Write([]byte("Error: To many connections"))
+		//conn.Write([]byte("Error: To many connections\n"))
 		return
 	}
 	connCounter++
@@ -135,75 +140,75 @@ func handleRequest(conn net.Conn) {
 		conn.Write([]byte(fmt.Sprintf("Error reading:\n %s \n", err.Error())))
 	} else {
 		if buflen > 0 {
-			s_Value := string(incomingBuf[:buflen])
-			if strings.ToLower(s_Value) == APP_SHUTDOWN {
-				conn.Write([]byte("Bye Bye monte\n"))
-				return
-			} else if strings.IndexRune(s_Value, '\n') > -1 || strings.IndexRune(s_Value, '\r') > -1 {
-				conn.Write([]byte("Bye Bye monte\n"))
-				return
-			}
-			cleanBufIndex, err := checkLeadingZeros(incomingBuf)
-			if err != nil {
-				conn.Write([]byte(err.Error()))
-				panic(err)
-				return
-			}
-			/** Send a response back to person contacting us.**/
-			updated_incomingBuf := incomingBuf[cleanBufIndex:]// add new line
+			sValue := strings.Split(string(incomingBuf[:]),"\n")
+			if len(sValue) > 0 {
+				inputRecievedCounter = inputRecievedCounter + len(sValue)// all values received
+				for i := 0;i< len(sValue);i++ {
+					if strings.ToLower(sValue[i]) == APP_SHUTDOWN || len(sValue[i]) == 0 {
+						//conn.Write([]byte("Bye Bye\n"))
+						break
+					}
+					singleIncomingBuf := incomingBufData(sValue[i])
+					cleanBufIndex, err := checkLeadingZeros(singleIncomingBuf)
+					if err != nil {
+						//conn.Write([]byte(err.Error()))
+						//panic(err)
+						break
+					}
+					cleanedInputVal := singleIncomingBuf[cleanBufIndex:]
+					if !strings.Contains(gCachInputMap.String(), sValue[i]) {
+						singleIncomingBuf = append(cleanedInputVal,lineBreakByteBuf[0])
+						keptValuesBuf.Write(singleIncomingBuf)
+					}
 
-			/** search cache for previous value, kill conn if found */
-			if bytes.Contains(gCachInputMap.Bytes(), updated_incomingBuf) {
-				conn.Write([]byte(fmt.Sprintf("Already received this value %s\n",string(updated_incomingBuf))))
-				return
+				}
+				/** cache all results for quick search while server is alive **/
+				if keptValuesBuf.Len() > 0 {
+					/** say to the user we got it **/
+					//conn.Write([]byte("got it\n"))
+					/** open file and save **/
+					var fileName = fmt.Sprintf("data.%d.log",fileData.fileCount)
+					f,err := os.Create(fileName)// this will either create or open RDWR
+					if err != nil {
+						conn.Write([]byte(fmt.Sprintf("Error failed opening file %s:\n %s \n",fileName, err.Error())))
+						panic(err)
+					}else{
+						gCachInputMap.Write(keptValuesBuf.Bytes())
+						f.Write(keptValuesBuf.Bytes())
+					}
+
+				}
 			}
 
-			updated_incomingBuf = append(updated_incomingBuf,'\n')
-			/** Todo
-			   Collect previous files numbers and compare all numbers always
-			   will need another buffer
-			 */
-			/** cache all results for quick search while server is alive **/
-			gCachInputMap.Write(updated_incomingBuf)
 
-			/** say to the user we got it **/
-			conn.Write([]byte("got it\n"))
-
-			/** open file and save **/
-			var fileName = fmt.Sprintf("data.%d.log",fileData.fileCount)
-			f,err := os.Create(fmt.Sprintf(fileName))// this will either create or open RDWR
-			if err != nil {
-				conn.Write([]byte(fmt.Sprintf("Error failed opening file %s:\n %s \n",fileName, err.Error())))
-				panic(err)
-				return
-			}
-			f.Write(updated_incomingBuf)
 		} else {
 			conn.Write([]byte("Failed as input is empty\n"))
-
 		}
 	}
 	if connCounter > 0 {
 		connCounter--
 	}
+	return
 }
 
 func checkLeadingZeros(inputByteArray []byte) (indexZeroCounter int, err error) {
 	valueLen := len(inputByteArray)
+	zeroByte := []byte("0")
 	for i := 0; i < valueLen; i++ {
 		incrementSliceValueBuf := i + 1
 		if incrementSliceValueBuf > valueLen {
 			incrementSliceValueBuf = incrementSliceValueBuf - 1
-		}
-		leadingZeroCheck := string(inputByteArray[i:incrementSliceValueBuf])
-		leadingZeroCheckInt, err := strconv.Atoi(leadingZeroCheck)
-		if err != nil {
-			return 0, fmt.Errorf("Value is not an int %s\n", leadingZeroCheck)
 			break
 		}
-		if leadingZeroCheckInt == 0 {
-			indexZeroCounter = indexZeroCounter + 1
-		} else if leadingZeroCheckInt > 0 {
+		/*leadingZeroCheck := inputByteArray[i:incrementSliceValueBuf]
+			eadingZeroCheckInt, err := strconv.Atoi(leadingZeroCheck)
+			if err != nil {
+				return 0, fmt.Errorf("Value is not an int %s\n", leadingZeroCheck)
+				break
+			}*/
+		if bytes.Contains(inputByteArray[i:incrementSliceValueBuf],zeroByte[:]){
+			indexZeroCounter++
+		} else {//if inputByteArray[i:incrementSliceValueBuf] !== zeroByte[:]
 			//fmt.Printf("%d leading zeros\n", indexZeroCounter)
 			break
 		}
@@ -276,7 +281,7 @@ func (f *logSt)countAllLogs() (n int) {
 				return
 			}
 			//close
-			n += bytes.Count(fileGuts, []byte("\n"))//count\
+			n = n + bytes.Count(fileGuts, []byte("\n"))//count\
 			logFile.Close()
 		}
 	}

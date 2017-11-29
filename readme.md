@@ -11,6 +11,6 @@
 * <b>Complete</b>: The server should kill any connection that sends it malformed data.
 * <b>Complete</b>: The server should support no more than 6 connections.
 * <b>Complete</b>: Input should be terminated with a newline sequence.
-* <b>In Test</b>: Unique entries should be written to a file called "data.0.log" when received and this file should be created or cleared each time the application starts.
-* <b>In Test</b>: Every 5 seconds, counters should be printed out to STDOUT for the number of unique numbers received, the total for that period, and the total for the duration of time the server has been running.  The counters should then be flushed.
-* <b>In Test</b>: Every 10 seconds, the log should rotate and increment the number in the name, all while only writing unique numbers. Example: data.0.log -> data.1.log -> data.2.log.
+* Unique entries should be written to a file called "data.0.log" when received and this file should be created or cleared each time the application starts.
+* Every 5 seconds, counters should be printed out to STDOUT for the number of unique numbers received, the total for that period, and the total for the duration of time the server has been running.  The counters should then be flushed.
+* Every 10 seconds, the log should rotate and increment the number in the name, all while only writing unique numbers. Example: data.0.log -> data.1.log -> data.2.log.
