@@ -17,7 +17,7 @@ const (
 	APP_BASE_PATH        = "./"
 	APP_INITIAL_FILENAME = "data.*.log"
 	APP_SHUTDOWN         = "shutdown"
-	CONN_HOST            = "localhost"
+	CONN_HOST            = "0.0.0.0"
 	CONN_PORT            = "3280"
 	CONN_TYPE            = "tcp"
 )
