@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"os/signal"
 	"sync"
+	"io"
 )
 
 const (
@@ -36,6 +37,7 @@ type (
 		duplicates int
 		fileCount  int
 		currentMap map[string]int
+		memoizeFile func()(*os.File)
 	}
 )
 
@@ -74,7 +76,16 @@ func main() {
 		os.Exit(1)
 	}
 	mainCounter.interval5()
-	//mainCounter.interval10()
+	mainCounter.interval10()
+	fileLog,err := createLog(mainCounter.fileCount)
+	if err != nil {
+		fmt.Println(fmt.Sprintf("Error failed opening data.%d.log:\n %s \n",mainCounter.fileCount, err.Error()))
+		return
+	}
+	mainCounter.memoizeFile = func()(f *os.File){
+		f = fileLog
+		return f
+	}
 	// Close the listener when the application closes.
 	defer l.Close()
 	fmt.Println("Listening on " + CONN_HOST+CONN_PORT)
@@ -87,19 +98,13 @@ func main() {
 		}
 		go func(){
 
+			defer conn.Close()
 
 			if connCounter == 6 {
-				conn.Close()
 				return
 			}
-			connCounter++
 
-			f,err := createLog(mainCounter.fileCount)
-			if err != nil {
-				fmt.Println(fmt.Sprintf("Error failed opening data.%d.log:\n %s \n",mainCounter.fileCount, err.Error()))
-				conn.Close()
-				return
-			}
+			connCounter++
 
 			lineBreakByteBuf   := incomingBufData("\n")
 			var drainBuf       =  make(incomingBufData,10)
@@ -109,50 +114,55 @@ func main() {
 
 				for {
 					if _, err = conn.Read(data[:]); err != nil {
-						break
+						return
 					}
+
 					for {
 						sValue,err := incomingBuf.ReadString(lineBreakByteBuf[0])
-						if err != nil {
-							break
-						}else if len(sValue) > 0 {
-							mainCounter.total++
-							if  len(sValue) == 0 || sValue == "\n" || sValue == "\r" {
-								return
-							}
-							sValue = strings.Replace(sValue,"\n","",1)
+						if err != nil && err != io.EOF {
+						    fmt.Println(err.Error())
+						}
 
-							if strings.ToLower(sValue) == APP_SHUTDOWN {
+						if len(sValue) > 0 && sValue != "EOF"  {
+							mainCounter.total++
+							switch {
+							case len(sValue) == 0 || sValue == "\n" || sValue == "\r":
+								fallthrough
+							case strings.ToLower(sValue) == APP_SHUTDOWN:
 								signal.Notify(c, os.Interrupt)
 								break
+							default:
+								sValue = strings.Replace(sValue,"\n","",1)
+								checkVal := checkLeadingZeros(sValue)
+								if len(checkVal) > 6 {
+									mainCounter.Lock()
+									if mainCounter.currentMap[checkVal] == 0 {
+										keptValuesBuf.Write(append(incomingBufData(checkVal),lineBreakByteBuf[0]))
+										mainCounter.currentMap[checkVal] = 1
+									}else{
+										mainCounter.currentMap[checkVal]++
+										mainCounter.duplicates++
+									}
+									mainCounter.Unlock()
+								}
 							}
-
-							checkVal := checkLeadingZeros(sValue)
-							if len(checkVal) < 6 {
-								return
-							}
-							mainCounter.Lock()
-							if mainCounter.currentMap[checkVal] == 0 {
-								keptValuesBuf.Write(append(incomingBufData(checkVal),lineBreakByteBuf[0]))
-								mainCounter.currentMap[checkVal] = 1
-							}else{
-								mainCounter.currentMap[checkVal]++
-								mainCounter.duplicates++
-							}
-							mainCounter.Unlock()
+						}
+						if err != nil && err == io.EOF {
+							break
 						}
 					}
 				}
+			    fileLog := mainCounter.memoizeFile()
 				if keptValuesBuf.Len() > 0 {
-					if _,err = f.Write(keptValuesBuf.Bytes()); err != nil{
+					if _,err = fileLog.Write(keptValuesBuf.Bytes()); err != nil{
 						fmt.Println(err.Error())
 					}
 				}
 
 			if connCounter > 0 {
 				connCounter--
-				conn.Close()
 			}
+
 			select {
 			case <-c:
 				os.Exit(1)
@@ -175,7 +185,7 @@ func (c *counter) interval5() {
 			"\nTotal duplicates received: %d" +
 	    	"\nTotal Recieved %d\n\n",
 	    		c.totalSince,c.totalUniq,c.duplicates,c.total)
-		 c.dumpCounts()
+		c.dumpCounts()
 	    c.Unlock()
 		time.Sleep(5 * time.Second)
 		// do the work
@@ -187,8 +197,14 @@ func (c *counter) interval10() {
 	//Every 10 seconds, the log should rotate and increment the number in the name,
 	//all while only writing unique numbers. Example: data.0.log -> data.1.log -> data.2.log.
 	 go func(){
+		 c.Lock()
 		c.fileCount++//count and create new file
-		_,err = createLog(c.fileCount)
+		fileLog,err := createLog(c.fileCount)
+	    c.memoizeFile = func()(f *os.File){
+	    	f = fileLog
+		   return f
+	    }
+		 c.Unlock()
 		if err != nil || c.fileCount > 10 {
 			return
 		}
@@ -267,6 +283,7 @@ func (c *counter)countAllLogs() {
 		log.Fatal(err)
 	}
 	for _, value := range files {
+
 		if strings.Contains(value, "data.") {
 			logFile,err := os.Open(value)
 			if err != nil {
