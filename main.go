@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 	"io/ioutil"
+	"os/signal"
 	"sync"
 )
 
@@ -17,7 +18,7 @@ const (
 	APP_BASE_PATH        = "./"
 	APP_INITIAL_FILENAME = "data.*.log"
 	APP_SHUTDOWN         = "shutdown"
-	CONN_HOST            = "0.0.0.0"
+	CONN_HOST            = "127.0.0.1:"
 	CONN_PORT            = "3280"
 	CONN_TYPE            = "tcp"
 )
@@ -27,195 +28,193 @@ type (
 	Duration int
 	File     *os.File
 	incomingBufData []byte
-	/*counter  struct {
-		total      count
-		totalSince count
-	}*/
-	logSt struct {
-		fileCount count
+	counter  struct {
+		sync.Mutex
+		total      int
+		totalSince int
+		totalUniq  int
+		duplicates int
+		fileCount  int
+		currentMap map[string]int
 	}
 )
 
 var (
 	connCounter   count
-	inputRecievedCounter   int
-	//durationVal   time.Duration
+	//inputRecievedCounter int
 	keptValuesBuf bytes.Buffer
-	gCachInputMap bytes.Buffer
-	fileData      = new(logSt)
+	//gCachInputMap bytes.Buffer
 	err           error
 )
 
-func init() {
 
-	fileData.cleanLogs()
-	err = fileData.createLog()
-	if err != nil {
-		fmt.Println(err)
-	}
+
+func (c *counter) dumpCounts () {
+
+	c.total = 0
+	c.totalSince = 0
+	c.totalUniq = 0
+	//c.duplicates = 0
+	c.currentMap = make(map[string]int)
+}
+
+func init(){
+	cleanLogs()
 }
 
 func main() {
-	startTCP()
-}
-
-func startTCP() {
 	// Listen for incoming connections.
-	l, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
+	l, err := net.Listen(CONN_TYPE, CONN_HOST+CONN_PORT)
+	mainCounter := new(counter)
+	mainCounter.currentMap = make(map[string]int)
+	c := make(chan os.Signal, 1)
+
 	if err != nil {
 		fmt.Println("Error listening:", err.Error())
 		os.Exit(1)
 	}
-	interval5()
-	interval10()
+	mainCounter.interval5()
+	//mainCounter.interval10()
 	// Close the listener when the application closes.
 	defer l.Close()
-	fmt.Println("Listening on " + CONN_HOST + ":" + CONN_PORT)
+	fmt.Println("Listening on " + CONN_HOST+CONN_PORT)
 	for {
 		// Listen for an incoming connection.
 		conn, err := l.Accept()
-
 		if err != nil {
 			fmt.Println("Error accepting: ", err.Error())
 			os.Exit(1)
 		}
-		// Handle connections in a new goroutine.
-		go handleRequest(conn)
+		go func(){
+
+
+			if connCounter == 6 {
+				conn.Close()
+				return
+			}
+			connCounter++
+
+			f,err := createLog(mainCounter.fileCount)
+			if err != nil {
+				fmt.Println(fmt.Sprintf("Error failed opening data.%d.log:\n %s \n",mainCounter.fileCount, err.Error()))
+				conn.Close()
+				return
+			}
+
+			lineBreakByteBuf   := incomingBufData("\n")
+			var drainBuf       =  make(incomingBufData,10)
+			var keptValuesBuf  =  bytes.NewBuffer(drainBuf)
+			var data 		   =  make(incomingBufData,10)
+			var incomingBuf    =  bytes.NewBuffer(data)
+
+				for {
+					if _, err = conn.Read(data[:]); err != nil {
+						break
+					}
+					for {
+						sValue,err := incomingBuf.ReadString(lineBreakByteBuf[0])
+						if err != nil {
+							break
+						}else if len(sValue) > 0 {
+							mainCounter.total++
+							if  len(sValue) == 0 || sValue == "\n" || sValue == "\r" {
+								return
+							}
+							sValue = strings.Replace(sValue,"\n","",1)
+
+							if strings.ToLower(sValue) == APP_SHUTDOWN {
+								signal.Notify(c, os.Interrupt)
+								break
+							}
+
+							checkVal := checkLeadingZeros(sValue)
+							if len(checkVal) < 6 {
+								return
+							}
+							mainCounter.Lock()
+							if mainCounter.currentMap[checkVal] == 0 {
+								keptValuesBuf.Write(append(incomingBufData(checkVal),lineBreakByteBuf[0]))
+								mainCounter.currentMap[checkVal] = 1
+							}else{
+								mainCounter.currentMap[checkVal]++
+								mainCounter.duplicates++
+							}
+							mainCounter.Unlock()
+						}
+					}
+				}
+				if keptValuesBuf.Len() > 0 {
+					if _,err = f.Write(keptValuesBuf.Bytes()); err != nil{
+						fmt.Println(err.Error())
+					}
+				}
+
+			if connCounter > 0 {
+				connCounter--
+				conn.Close()
+			}
+			select {
+			case <-c:
+				os.Exit(1)
+			}
+		}()
+
 	}
 }
 
-func interval5() {
+
+func (c *counter) interval5() {
 	//do read out for uniq numbers in this interval of 10 seconds
 	// do read out for uniq numbers total for server duration
 	 go func(){
+	    c.Lock()
 		//if gCachInputMap.Len() > 0 {
-			fmt.Printf("Total unique numbers this session: %d | Total unique numbers received: %d | Total Recieved %d\n",bytes.Count(gCachInputMap.Bytes(), []byte("\n")),fileData.countAllLogs(),inputRecievedCounter)
-		//}else{
-		//	fmt.Printf("Total unique numbers this session: %d | Total unique numbers received: %d | Total Recieved %d\n",0,fileData.countAllLogs(),inputRecievedCounter)
-		//}
+		c.countAllLogs()
+	    fmt.Printf("Total unique numbers this session: %d" +
+	    	"\nTotal unique numbers: %d" +
+			"\nTotal duplicates received: %d" +
+	    	"\nTotal Recieved %d\n\n",
+	    		c.totalSince,c.totalUniq,c.duplicates,c.total)
+		 c.dumpCounts()
+	    c.Unlock()
 		time.Sleep(5 * time.Second)
 		// do the work
-		interval5()
+		 c.interval5()
 	 }()
 }
 
-func interval10() {
+func (c *counter) interval10() {
 	//Every 10 seconds, the log should rotate and increment the number in the name,
 	//all while only writing unique numbers. Example: data.0.log -> data.1.log -> data.2.log.
 	 go func(){
-		fileData.fileCount++//count and create new file
-		gCachInputMap.Reset()// drop cache for this session
-		fileData.createLog()
-		if fileData.fileCount > 10 {
+		c.fileCount++//count and create new file
+		_,err = createLog(c.fileCount)
+		if err != nil || c.fileCount > 10 {
 			return
 		}
 		time.Sleep(10 * time.Second)
-		interval10()
+		c.interval10()
 	 }()
 
 }
 
-// Handles incoming requests.
-func handleRequest(conn net.Conn) {
-
-	incomingBuf := make(incomingBufData, 1024)
-	lineBreakByteBuf := incomingBufData("\n")
-	var keptValuesBuf  bytes.Buffer
-	var wg sync.WaitGroup
-	wg.Add(1)
-	// Close the connection when you're done with it.
-    defer func(){
-		conn.Close()
-		recover()
-	}()
-
-	if connCounter == 6 {
-		//conn.Write([]byte("Error: To many connections\n"))
-		return
-	}
-	connCounter++
-	// Read the incoming connection into the buffer.
-	buflen, err := conn.Read(incomingBuf)//read connection data to incomingBuf
-	if err != nil {
-		conn.Write([]byte(fmt.Sprintf("Error reading:\n %s \n", err.Error())))
-	} else {
-		if buflen > 0 {
-			sValue := strings.Split(string(incomingBuf[:]),"\n")
-			if len(sValue) > 0 {
-				inputRecievedCounter = inputRecievedCounter + len(sValue)// all values received
-				for i := 0;i< len(sValue);i++ {
-					if strings.ToLower(sValue[i]) == APP_SHUTDOWN || len(sValue[i]) == 0 {
-						//conn.Write([]byte("Bye Bye\n"))
-						break
-					}
-					singleIncomingBuf := incomingBufData(sValue[i])
-					cleanBufIndex, err := checkLeadingZeros(singleIncomingBuf)
-					if err != nil {
-						//conn.Write([]byte(err.Error()))
-						//panic(err)
-						break
-					}
-					cleanedInputVal := singleIncomingBuf[cleanBufIndex:]
-					if !strings.Contains(gCachInputMap.String(), sValue[i]) {
-						singleIncomingBuf = append(cleanedInputVal,lineBreakByteBuf[0])
-						keptValuesBuf.Write(singleIncomingBuf)
-					}
-
-				}
-				/** cache all results for quick search while server is alive **/
-				if keptValuesBuf.Len() > 0 {
-					/** say to the user we got it **/
-					//conn.Write([]byte("got it\n"))
-					/** open file and save **/
-					var fileName = fmt.Sprintf("data.%d.log",fileData.fileCount)
-					f,err := os.Create(fileName)// this will either create or open RDWR
-					if err != nil {
-						conn.Write([]byte(fmt.Sprintf("Error failed opening file %s:\n %s \n",fileName, err.Error())))
-						panic(err)
-					}else{
-						gCachInputMap.Write(keptValuesBuf.Bytes())
-						f.Write(keptValuesBuf.Bytes())
-					}
-
-				}
-			}
-
-
-		} else {
-			conn.Write([]byte("Failed as input is empty\n"))
-		}
-	}
-	if connCounter > 0 {
-		connCounter--
-	}
-	return
-}
-
-func checkLeadingZeros(inputByteArray []byte) (indexZeroCounter int, err error) {
-	valueLen := len(inputByteArray)
-	zeroByte := []byte("0")
-	for i := 0; i < valueLen; i++ {
-		incrementSliceValueBuf := i + 1
-		if incrementSliceValueBuf > valueLen {
-			incrementSliceValueBuf = incrementSliceValueBuf - 1
-			break
-		}
-		/*leadingZeroCheck := inputByteArray[i:incrementSliceValueBuf]
-			eadingZeroCheckInt, err := strconv.Atoi(leadingZeroCheck)
-			if err != nil {
-				return 0, fmt.Errorf("Value is not an int %s\n", leadingZeroCheck)
+func checkLeadingZeros(s string) (t string) {
+	valueLen := len(s)
+	var zeroByte = []byte("0")
+	for i := 0; i<valueLen;i++ {
+		if s[i] == zeroByte[0] {
+			if i+1 < len(s) {
+				s = s[i+1:]
+			} else {
+				s = s[i:]
 				break
-			}*/
-		if bytes.Contains(inputByteArray[i:incrementSliceValueBuf],zeroByte[:]){
-			indexZeroCounter++
-		} else {//if inputByteArray[i:incrementSliceValueBuf] !== zeroByte[:]
-			//fmt.Printf("%d leading zeros\n", indexZeroCounter)
+			}
+		}else{
 			break
 		}
-		//fmt.Printf("check: %s\nisZero: %d\n", leadingZeroCheck, indexZeroCounter)
 	}
-	//fmt.Printf("final value: %s\n", string(inputByteArray[indexZeroCounter:]))
-	return indexZeroCounter, nil
+	t = s
+	return t
 }
 
 func readDirNames(dirname string) ([]string, error) {
@@ -233,17 +232,18 @@ func readDirNames(dirname string) ([]string, error) {
 	return names, nil
 }
 
-func (f *logSt)createLog() error {
+func createLog(fileCount int) (f *os.File,err error){
 	// create initial data log
-	fileName  := fmt.Sprintf("data.%d.log",f.fileCount)
-	_, err = os.Create(fileName)
+	fileName  := fmt.Sprintf("data.%d.log",fileCount)
+	f, err = os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Failed to open file: ",err.Error())
+		return nil,err
 	}
-	return err
+	return f,err
 }
 
-func (f *logSt)cleanLogs() {
+func cleanLogs() {
 	// remove any data logs in this working directory
 	files, err := readDirNames(APP_BASE_PATH)
 	if err != nil {
@@ -261,8 +261,7 @@ func (f *logSt)cleanLogs() {
 
 }
 
-func (f *logSt)countAllLogs() (n int) {
-	// remove any data logs in this working directory
+func (c *counter)countAllLogs() {
 	files, err := readDirNames(APP_BASE_PATH)
 	if err != nil {
 		log.Fatal(err)
@@ -274,16 +273,20 @@ func (f *logSt)countAllLogs() (n int) {
 				fmt.Println(err)
 				return
 			}
-			//read
-			fileGuts,err := ioutil.ReadAll(logFile)
+			data,err := ioutil.ReadAll(logFile)
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
-			//close
-			n = n + bytes.Count(fileGuts, []byte("\n"))//count\
+			if strings.Contains(value,string(c.fileCount)) {
+				c.totalSince =  bytes.Count(data, []byte("\n"))
+			}else{
+				c.totalUniq += bytes.Count(data, []byte("\n"))
+			}
+
 			logFile.Close()
 		}
 	}
-	return n
+	//c.totalSince = bytes.Count(gCachInputMap.Bytes(),[]byte("\n"))
+	c.totalUniq = c.totalSince + c.totalUniq
 }
