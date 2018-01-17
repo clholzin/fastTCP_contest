@@ -3,17 +3,16 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net"
 	"os"
 	"os/signal"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
 	"time"
-	"bufio"
 )
 
 const (
@@ -28,30 +27,212 @@ const (
 type (
 	count           int
 	Duration        int
-	File            *os.File
 	incomingBufData []byte
 	counter         struct {
-		mu          sync.Mutex
-		total       int
-		totalSince  int
-		totalUniq   int
-		duplicates  int
-		fileCount   int
-		currentMap  map[string]int
-		memoizeFile func() *os.File
+		mu         sync.Mutex
+		total      int
+		totalSince int
+		totalUniq  int
+		duplicates int
+		fileCount  int
+		currentMap map[string]int
+	}
+	bundleData struct {
+		countData *counter
+		readData  []byte
 	}
 )
 
 var (
-	connCounter count
-	//inputRecievedCounter int
-	//keptValuesBuf bytes.Buffer
-	connSubtract = make(chan int,1)
-	//gCachInputMap bytes.Buffer
-	//err error
+	connCounter    count
+	backendChannel = make(chan *bundleData, 6)
+	countChan      = make(chan count, 1)
 )
 
+func init() {
+	runtime.GOMAXPROCS(2)
+	cleanLogs()
+}
+
+func main() {
+	// Listen for incoming connections.
+
+	//------------------------TCP Listener----------------------
+	l, err := net.Listen(CONN_TYPE, CONN_HOST+CONN_PORT)
+	if err != nil {
+		fmt.Println("Error listening:", err.Error())
+		os.Exit(1)
+	}
+	fmt.Println("Listening on " + CONN_HOST + CONN_PORT)
+	//----------------------------------------------------------
+
+	mainCounter := new(counter)
+	mainCounter.currentMap = make(map[string]int)
+	killChan := make(chan os.Signal, 1)
+
+	mainCounter.interval10()
+	mainCounter.interval5()
+
+	// Close the listener when the application closes.
+	defer l.Close()
+
+	go func() {
+		for {
+
+			if connCounter >= 6 {
+				continue
+			}
+			// Listen for an incoming connection.
+			conn, err := l.Accept()
+			if err != nil {
+				fmt.Println("Error accepting: ", err.Error())
+				os.Exit(1)
+			}
+
+			countChan <- 1
+
+			go pump(conn, killChan, backendChannel, countChan)
+
+		}
+	}()
+
+	go func() {
+		for {
+			select {
+			case valInt := <-countChan:
+				connCounter += valInt
+			}
+		}
+	}()
+
+	go mainCounter.consume(backendChannel)
+
+	select {
+	case <-killChan:
+		os.Exit(1)
+	}
+}
+
+func pump(connection net.Conn, c chan os.Signal, backendChannel chan *bundleData, countChan chan count) {
+	defer func() {
+		connection.Close()
+		countChan <- -1 // sync with chan
+	}()
+
+	sValue := ""
+	currentCounter := new(counter)
+	currentCounter.currentMap = make(map[string]int)
+	lineBreakByteBuf := incomingBufData("\n")
+	killLoopChan := make(chan int, 1)
+	drainBuf := make(incomingBufData, 1024)
+	keptValuesBuf := bytes.NewBuffer(drainBuf)
+	bu := make([]byte, 1024)
+	bufConn := bytes.NewBuffer(bu)
+
+	for {
+		_, err := connection.Read(bu) //bufio.NewReader(connection)
+		//bytesLeft := bufReader.Buffered()
+		//readString := string(bu[:])
+		if err != nil {
+			fmt.Println(err.Error())
+			break
+		}
+		readString := string(bu[:])
+		sValueArray := strings.Split(readString, "\n")
+		for i := 0; i < len(sValueArray); i++ {
+			sValue = sValueArray[i]
+			if len(sValue) == 0 {
+				continue
+			}
+			/*sValue,err = bufConn.ReadString(lineBreakByteBuf[0])
+			if err != nil || sValue == ""{
+				if sValue == "ooopps"{
+					fmt.Println(sValue)
+					return
+				}
+				sValue = "ooopps"
+				break
+			}*/
+			//if bytesLeft > 0 {
+			//bufReader.ReadBytes(lineBreakByteBuf[0])
+			/*if err != nil || len(sValue) == 0{//|| byteValue[0] == lineBreakByteBuf[0]
+				if err != io.EOF {
+					fmt.Println(err.Error())
+					return
+				}
+				killLoopChan <- 1
+			}*/
+			/*if len(sValue) < 5 {
+				continue
+			}*/
+			//sValue := string(byteValue[:])
+			currentCounter.total++
+			switch {
+			case strings.ToLower(sValue) == APP_SHUTDOWN:
+				signal.Notify(c, os.Interrupt)
+				return
+			default: //len(sValue) > 0 && sValue != "\n" && sValue != "\r"
+				//sValue = strings.Replace(sValue, "\n", "", 1)
+				checkVal := sValue //checkLeadingZeros(sValue)
+				/*if len(checkVal) > 5 {
+					if currentCounter.currentMap[checkVal] == 0 {
+						keptValuesBuf.Write(append(incomingBufData(checkVal), lineBreakByteBuf[0]))
+						currentCounter.currentMap[checkVal] = 1
+						currentCounter.totalUniq++
+					} else {
+						currentCounter.currentMap[checkVal]++
+						currentCounter.duplicates++
+					}
+				}*/
+				keptValuesBuf.Write(append(incomingBufData(checkVal), lineBreakByteBuf[0]))
+				if currentCounter.currentMap[checkVal] == 0 {
+					currentCounter.totalUniq++
+				}
+				currentCounter.currentMap[checkVal]++
+			}
+
+			//}
+			select {
+			case <-killLoopChan:
+				break
+			default:
+			}
+		}
+		bufConn.Reset()
+	}
+	b := &bundleData{currentCounter, keptValuesBuf.Bytes()}
+	backendChannel <- b
+
+	/*select {
+	case <-c:
+		os.Exit(1)
+	default:
+	}*/
+
+}
+
+func (c *counter) consume(backendChannel chan *bundleData) {
+
+	for {
+		select {
+		case d := <-backendChannel:
+			fileLog, err := createLog(c.fileCount)
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			if _, err = fileLog.Write(d.readData); err != nil {
+				fmt.Println(err.Error())
+			}
+			fileLog.Close()
+			c.addUp(d.countData)
+		}
+	}
+}
+
 func (c *counter) dumpCounts() {
+
+	c.mu.Lock()
 	c.total = 0
 	c.totalSince = 0
 	c.totalUniq = 0
@@ -67,137 +248,20 @@ func (c *counter) dumpCounts() {
 		return fileLog
 	}*/
 	c.currentMap = make(map[string]int)
+	c.mu.Unlock()
 }
 
-func init() {
-	cleanLogs()
-}
-
-func main() {
-	// Listen for incoming connections.
-	l, err := net.Listen(CONN_TYPE, CONN_HOST+CONN_PORT)
-	if err != nil {
-		fmt.Println("Error listening:", err.Error())
-		os.Exit(1)
-	}
-	fmt.Println("Listening on " + CONN_HOST + CONN_PORT)
-	mainCounter := new(counter)
-	mainCounter.currentMap = make(map[string]int)
-	c := make(chan os.Signal, 1)
-
-	mainCounter.interval5()
-
-	/*fileLog, err := createLog(mainCounter.fileCount)
-	if err != nil {
-		fmt.Println(fmt.Sprintf("Error failed opening data.%d.log:\n %s \n", mainCounter.fileCount, err.Error()))
-		return
-	}
-	mainCounter.memoizeFile = func() (*os.File) {
-		return fileLog
-	}*/
-	mainCounter.interval10()
-	// Close the listener when the application closes.
-	defer l.Close()
-
-	for {
-		// Listen for an incoming connection.
-		if connCounter >= 6 {
-			continue
-		}
-		conn, err := l.Accept()
-		if err != nil {
-			fmt.Println("Error accepting: ", err.Error())
-			os.Exit(1)
-		}
-
-		connCounter++
-
-		go func() {
-			defer conn.Close()
-			currentCounter            := new(counter)
-			currentCounter.currentMap = make(map[string]int)
-			lineBreakByteBuf          := incomingBufData("\n")
-			killLoopChan              := make(chan int,1)
-			var drainBuf              = make(incomingBufData, 1024)
-			var keptValuesBuf         = bytes.NewBuffer(drainBuf)
-			bufReader := bufio.NewReader(conn)
-			//bytesLeft := bufReader.Buffered()
-			for {
-				//if bytesLeft > 0 {
-					byteValue,err := bufReader.ReadBytes(lineBreakByteBuf[0])
-					if err != nil{
-						if err != io.EOF {
-							fmt.Println(err.Error())
-						}
-						killLoopChan <- 1
-					}
-					if len(byteValue) < 5 {
-						continue
-					}
-					sValue := string(byteValue[:])
-					//if len(byteValue) > 0 && sValue != "\n" && sValue != "\r" {
-					currentCounter.total++
-					switch {
-					case strings.ToLower(sValue) == APP_SHUTDOWN:
-						signal.Notify(c, os.Interrupt)
-						break
-					case len(byteValue) > 0 && sValue != "\n" && sValue != "\r":
-						sValue = strings.Replace(sValue, "\n", "", 1)
-						checkVal := sValue//checkLeadingZeros(sValue)
-						if len(checkVal) > 5 {
-							if currentCounter.currentMap[checkVal] == 0 {
-								keptValuesBuf.Write(append(incomingBufData(checkVal), lineBreakByteBuf[0]))
-								currentCounter.currentMap[checkVal] = 1
-								currentCounter.totalUniq++
-							} else {
-								currentCounter.currentMap[checkVal]++
-								currentCounter.duplicates++
-							}
-						}
-					}
-					//}
-					select {
-					case <- killLoopChan:
-						break
-					default:
-					}
-			}
-
-			select {
-			case <-c:
-				os.Exit(1)
-			default:
-			}
-
-
-			//mainCounter.addUp(currentCounter,keptValuesBuf.Bytes())
-			//}
-		}()
-
-
-	}
-}
-
-func(c *counter) addUp(currentCounter *counter,keptValuesBuf []byte){
+func (c *counter) addUp(currentCounter *counter) {
 	c.mu.Lock()
-	//fileLog := mainCounter.memoizeFile()
-	fileLog, err := createLog(c.fileCount)
-	if err != nil{
-		fmt.Println(err)
-	}
-	if len(keptValuesBuf) > 0 {
-		if _, err = fileLog.Write(bytes.Trim(keptValuesBuf,"")); err != nil {
-			fmt.Println(err.Error())
-		}
-	}
-	fileLog.Close()
 	c.total += currentCounter.total
 	c.duplicates += currentCounter.duplicates
-	for k,_ := range currentCounter.currentMap {
+	for k, _ := range currentCounter.currentMap {
 		if c.currentMap[k] == 0 {
 			c.currentMap[k] = currentCounter.currentMap[k]
-		}else{
+			c.totalUniq++
+		} else {
 			c.currentMap[k] += currentCounter.currentMap[k]
+			c.duplicates++
 		}
 	}
 	c.mu.Unlock()
@@ -207,7 +271,6 @@ func (c *counter) interval5() {
 	//do read out for uniq numbers in this interval of 10 seconds
 	// do read out for uniq numbers total for server duration
 	go func() {
-		c.mu.Lock()
 		c.countAllLogs()
 		fmt.Printf("Total unique numbers this session: %d"+
 			"\nTotal unique numbers: %d"+
@@ -215,7 +278,6 @@ func (c *counter) interval5() {
 			"\nTotal Recieved %d\n\n",
 			c.totalSince, c.totalUniq, c.duplicates, c.total)
 		c.dumpCounts()
-		c.mu.Unlock()
 		time.Sleep(5 * time.Second)
 		c.interval5()
 	}()
@@ -246,6 +308,38 @@ func (c *counter) interval10() {
 		c.interval10()
 	}()
 
+}
+
+func (c *counter) countAllLogs() {
+	files, err := readDirNames(APP_BASE_PATH)
+	if err != nil {
+		log.Fatal(err)
+	}
+	c.mu.Lock()
+	for _, value := range files {
+		if strings.Contains(value, "data.") {
+			logFile, err := os.Open(value)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			data, err := ioutil.ReadAll(logFile)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			if strings.Contains(value, string(c.fileCount)) {
+				c.totalSince += bytes.Count(data, []byte("\n"))
+			} else {
+				c.totalUniq += bytes.Count(data, []byte("\n"))
+			}
+
+			logFile.Close()
+		}
+	}
+	//c.totalSince = bytes.Count(gCachInputMap.Bytes(),[]byte("\n"))
+	c.totalUniq = c.totalSince + c.totalUniq
+	c.mu.Unlock()
 }
 
 func checkLeadingZeros(s string) (t string) {
@@ -307,35 +401,4 @@ func cleanLogs() {
 		}
 	}
 
-}
-
-func (c *counter) countAllLogs() {
-	files, err := readDirNames(APP_BASE_PATH)
-	if err != nil {
-		log.Fatal(err)
-	}
-	for _, value := range files {
-
-		if strings.Contains(value, "data.") {
-			logFile, err := os.Open(value)
-			if err != nil {
-				fmt.Println(err)
-				continue
-			}
-			data, err := ioutil.ReadAll(logFile)
-			if err != nil {
-				fmt.Println(err)
-				continue
-			}
-			if strings.Contains(value, string(c.fileCount)) {
-				c.totalSince += bytes.Count(data, []byte("\n"))
-			} else {
-				c.totalUniq += bytes.Count(data, []byte("\n"))
-			}
-
-			logFile.Close()
-		}
-	}
-	//c.totalSince = bytes.Count(gCachInputMap.Bytes(),[]byte("\n"))
-	c.totalUniq = c.totalSince + c.totalUniq
 }
