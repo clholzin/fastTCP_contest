@@ -76,15 +76,15 @@ func init() {
 func main() {
 	// Listen for incoming connections.
 	l, err := net.Listen(CONN_TYPE, CONN_HOST+CONN_PORT)
+	if err != nil {
+		fmt.Println("Error listening:", err.Error())
+		os.Exit(1)
+	}
 	fmt.Println("Listening on " + CONN_HOST + CONN_PORT)
 	mainCounter := new(counter)
 	mainCounter.currentMap = make(map[string]int)
 	c := make(chan os.Signal, 1)
 
-	if err != nil {
-		fmt.Println("Error listening:", err.Error())
-		os.Exit(1)
-	}
 	mainCounter.interval5()
 
 	/*fileLog, err := createLog(mainCounter.fileCount)
@@ -101,74 +101,67 @@ func main() {
 
 	for {
 		// Listen for an incoming connection.
+		if connCounter >= 6 {
+			continue
+		}
 		conn, err := l.Accept()
 		if err != nil {
 			fmt.Println("Error accepting: ", err.Error())
 			os.Exit(1)
 		}
-		if connCounter >= 6 {
-			conn.Close()
-			continue
-		}
-		connCounter++
-		currentCounter    := new(counter)
-		//currCountChan     := make(chan *counter,1)
-		currentCounter.currentMap = make(map[string]int)
-		lineBreakByteBuf  := incomingBufData("\n")
-		var drainBuf      = make(incomingBufData, 1024)
-		var keptValuesBuf = bytes.NewBuffer(drainBuf)
 
+		connCounter++
 
 		go func() {
 			defer conn.Close()
+			currentCounter            := new(counter)
+			currentCounter.currentMap = make(map[string]int)
+			lineBreakByteBuf          := incomingBufData("\n")
+			killLoopChan              := make(chan int,1)
+			var drainBuf              = make(incomingBufData, 1024)
+			var keptValuesBuf         = bytes.NewBuffer(drainBuf)
 			bufReader := bufio.NewReader(conn)
-			//for {
-				//var data  = make(incomingBufData, 1024)
-				//var incomingBuf   = bytes.NewBuffer(data)
-				//bytesRead, err := conn.Read(data[:])
-				//if bytesRead == 0 || err != nil{
-				//	return
-				//}
-
-				for {
-					//sValue, err := incomingBuf.ReadString(lineBreakByteBuf[0])
+			//bytesLeft := bufReader.Buffered()
+			for {
+				//if bytesLeft > 0 {
 					byteValue,err := bufReader.ReadBytes(lineBreakByteBuf[0])
-					if err != nil || byteValue[0] == lineBreakByteBuf[0]{
+					if err != nil{
 						if err != io.EOF {
 							fmt.Println(err.Error())
 						}
-						return
+						killLoopChan <- 1
+					}
+					if len(byteValue) < 5 {
+						continue
 					}
 					sValue := string(byteValue[:])
-					if len(sValue) > 0 && sValue != "\n" && sValue != "\r" {
-						mainCounter.total++
-						switch {
-						case strings.ToLower(sValue) == APP_SHUTDOWN:
-							signal.Notify(c, os.Interrupt)
-							return
-						default:
-							sValue = strings.Replace(sValue, "\n", "", 1)
-							checkVal := checkLeadingZeros(sValue)
-							if len(checkVal) > 5 {
-								if currentCounter.currentMap[checkVal] == 0 {
-									keptValuesBuf.Write(append(incomingBufData(checkVal), lineBreakByteBuf[0]))
-									currentCounter.currentMap[checkVal] = 1
-								} else {
-									currentCounter.currentMap[checkVal]++
-									currentCounter.duplicates++
-								}
+					//if len(byteValue) > 0 && sValue != "\n" && sValue != "\r" {
+					currentCounter.total++
+					switch {
+					case strings.ToLower(sValue) == APP_SHUTDOWN:
+						signal.Notify(c, os.Interrupt)
+						break
+					case len(byteValue) > 0 && sValue != "\n" && sValue != "\r":
+						sValue = strings.Replace(sValue, "\n", "", 1)
+						checkVal := sValue//checkLeadingZeros(sValue)
+						if len(checkVal) > 5 {
+							if currentCounter.currentMap[checkVal] == 0 {
+								keptValuesBuf.Write(append(incomingBufData(checkVal), lineBreakByteBuf[0]))
+								currentCounter.currentMap[checkVal] = 1
+								currentCounter.totalUniq++
+							} else {
+								currentCounter.currentMap[checkVal]++
+								currentCounter.duplicates++
 							}
 						}
-					}else{
-						return
 					}
-					/*else if err != nil && err == io.EOF {
+					//}
+					select {
+					case <- killLoopChan:
 						break
-					}*/
-				}
-			//}
-		//	currCountChan <- currentCounter
-		//	connSubtract <- 1
+					default:
+					}
+			}
 
 			select {
 			case <-c:
@@ -177,35 +170,37 @@ func main() {
 			}
 
 
-			//select {
-			//case currentCounts := <-currCountChan:
-			mainCounter.mu.Lock()
-			//fileLog := mainCounter.memoizeFile()
-			fileLog, err := createLog(mainCounter.fileCount)
-			if err != nil{
-				fmt.Println(err)
-			}
-			if keptValuesBuf.Len() > 0 {
-				if _, err = fileLog.Write(bytes.Trim(keptValuesBuf.Bytes(),"")); err != nil {
-					fmt.Println(err.Error())
-				}
-			}
-			fileLog.Close()
-			mainCounter.total += currentCounter.total
-			mainCounter.duplicates += currentCounter.duplicates
-			for k,_ := range currentCounter.currentMap {
-				if mainCounter.currentMap[k] == 0 {
-					mainCounter.currentMap[k] = currentCounter.currentMap[k]
-				}else{
-					mainCounter.currentMap[k] += currentCounter.currentMap[k]
-				}
-			}
-			mainCounter.mu.Unlock()
+			//mainCounter.addUp(currentCounter,keptValuesBuf.Bytes())
 			//}
 		}()
 
 
 	}
+}
+
+func(c *counter) addUp(currentCounter *counter,keptValuesBuf []byte){
+	c.mu.Lock()
+	//fileLog := mainCounter.memoizeFile()
+	fileLog, err := createLog(c.fileCount)
+	if err != nil{
+		fmt.Println(err)
+	}
+	if len(keptValuesBuf) > 0 {
+		if _, err = fileLog.Write(bytes.Trim(keptValuesBuf,"")); err != nil {
+			fmt.Println(err.Error())
+		}
+	}
+	fileLog.Close()
+	c.total += currentCounter.total
+	c.duplicates += currentCounter.duplicates
+	for k,_ := range currentCounter.currentMap {
+		if c.currentMap[k] == 0 {
+			c.currentMap[k] = currentCounter.currentMap[k]
+		}else{
+			c.currentMap[k] += currentCounter.currentMap[k]
+		}
+	}
+	c.mu.Unlock()
 }
 
 func (c *counter) interval5() {
