@@ -1,24 +1,24 @@
 package utilCounter
 
 import (
-	"fmt"
-	"time"
-	"log"
-	"strings"
-	"os"
-	"io/ioutil"
 	"bytes"
-	"sync"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
 	"sort"
+	"strings"
+	"sync"
+	"time"
 )
 
 const (
-	APP_BASE_PATH        = "./"
-
+	APP_BASE_PATH = "./"
 )
+
 type (
-	Count           int
-	Counter         struct {
+	Count   int
+	Counter struct {
 		Mu         sync.Mutex
 		Total      int
 		TotalSince int
@@ -34,13 +34,11 @@ type (
 	TriggerChan chan int
 )
 
-
-
 func (c *Counter) Consume(backendChannel chan *BundleData) {
 
 	for {
 		select {
-		case d,ok := <-backendChannel:
+		case d, ok := <-backendChannel:
 			if ok {
 				fileLog, err := CreateLog(c.FileCount)
 				if err != nil {
@@ -73,9 +71,9 @@ func (c *Counter) AddUp(currentCounter *Counter) {
 	c.Duplicates += currentCounter.Duplicates
 	c.TotalSince += currentCounter.TotalSince
 	for k, n := range currentCounter.CurrentMap {
-		if _,ok := c.CurrentMap[k];!ok {
+		if _, ok := c.CurrentMap[k]; !ok {
 			c.TotalUniq++
-		}else{
+		} else {
 			c.Duplicates++
 		}
 		c.CurrentMap[k] += n
@@ -83,16 +81,16 @@ func (c *Counter) AddUp(currentCounter *Counter) {
 	c.Mu.Unlock()
 }
 
-func (c *Counter) Interval5(connCount *Count,triggerInterval5Chan TriggerChan) {
+func (c *Counter) Interval5(connCount *Count, triggerInterval5Chan TriggerChan) {
 	//do read out for uniq numbers in this interval of 5 seconds
 	// do read out for uniq numbers total for server duration
 	for {
-		select{
-		case <- time.Tick(5 * time.Second):
+		select {
+		case <-time.Tick(5 * time.Second):
 			go c.CountAllLogs()
 			var i Count = 0
 			valueCont := *connCount
-			for ;i < valueCont;i++{
+			for ; i < valueCont; i++ {
 				triggerInterval5Chan <- 1
 			}
 			fmt.Printf("Total unique numbers this session: %d"+
@@ -109,8 +107,8 @@ func (c *Counter) Interval10() {
 	//Every 10 seconds, the log should rotate and increment the number in the name,
 	//all while only writing unique numbers. Example: data.0.log -> data.1.log -> data.2.log.
 	for {
-		select{
-		case <- time.Tick(10 * time.Second):
+		select {
+		case <-time.Tick(10 * time.Second):
 			c.Mu.Lock()
 			c.FileCount++ //count and create new file
 			_, err := CreateLog(c.FileCount)

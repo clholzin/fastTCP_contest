@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestDumpCounts(t *testing.T){
+func TestDumpCounts(t *testing.T) {
 	t.Log("Struct with integer will be zeroed out")
 	countStruct := new(Counter)
 	countStruct.Total = 4

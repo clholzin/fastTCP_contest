@@ -2,10 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="7c4cf0ed-c162-47fb-8885-0efc5e9af435" name="Default" comment="">
-      <change beforePath="" afterPath="$PROJECT_DIR$/utilCounter/utilCounter.go" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/utilCounter/utilCounter_test.go" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change beforePath="$PROJECT_DIR$/main.go" afterPath="$PROJECT_DIR$/main.go" />
+      <change beforePath="$PROJECT_DIR$/utilCounter/utilCounter.go" afterPath="$PROJECT_DIR$/utilCounter/utilCounter.go" />
+      <change beforePath="$PROJECT_DIR$/utilCounter/utilCounter_test.go" afterPath="$PROJECT_DIR$/utilCounter/utilCounter_test.go" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -19,7 +18,7 @@
       <file leaf-file-name="main.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/main.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="307">
+            <state relative-caret-position="1869">
               <caret line="122" column="9" lean-forward="false" selection-start-line="122" selection-start-column="9" selection-end-line="122" selection-end-column="9" />
               <folding>
                 <element signature="e#14#141#0" expanded="true" />
@@ -43,7 +42,6 @@
                 <element signature="e#3283#3942#0" expanded="false" />
                 <element signature="e#3295#3325#0" expanded="false" />
                 <element signature="e#3329#3924#0" expanded="false" />
-                <element signature="e#3393#3408#0" expanded="false" />
                 <element signature="e#3489#3513#0" expanded="false" />
                 <element signature="e#3832#3874#0" expanded="false" />
               </folding>
@@ -54,43 +52,38 @@
       <file leaf-file-name="utilCounter.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/utilCounter/utilCounter.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="181">
-              <caret line="68" column="0" lean-forward="false" selection-start-line="68" selection-start-column="0" selection-end-line="68" selection-end-column="0" />
+            <state relative-caret-position="1176">
+              <caret line="66" column="0" lean-forward="false" selection-start-line="66" selection-start-column="0" selection-end-line="66" selection-end-column="0" />
               <folding>
                 <element signature="e#21#108#0" expanded="true" />
-                <element signature="n#!!block;n#DumpCounts#0" expanded="false" />
-                <element signature="n#!!block;n#AddUp#0" expanded="false" />
-                <element signature="e#1198#1308#0" expanded="false" />
-                <element signature="e#1233#1255#0" expanded="false" />
-                <element signature="e#1259#1282#0" expanded="false" />
                 <element signature="n#!!block;n#Interval10#0" expanded="false" />
-                <element signature="e#2166#2391#0" expanded="false" />
-                <element signature="e#2170#2388#0" expanded="false" />
-                <element signature="e#2180#2384#0" expanded="false" />
-                <element signature="e#2350#2367#0" expanded="false" />
+                <element signature="e#2150#2375#0" expanded="false" />
+                <element signature="e#2154#2372#0" expanded="false" />
+                <element signature="e#2165#2368#0" expanded="false" />
+                <element signature="e#2334#2351#0" expanded="false" />
                 <element signature="n#!!block;n#CountAllLogs#0" expanded="false" />
-                <element signature="e#2488#2509#0" expanded="false" />
-                <element signature="e#2552#3019#0" expanded="false" />
-                <element signature="e#2592#3016#0" expanded="false" />
-                <element signature="e#2645#2685#0" expanded="false" />
-                <element signature="e#2743#2783#0" expanded="false" />
-                <element signature="e#2911#2949#0" expanded="false" />
-                <element signature="e#2955#2992#0" expanded="false" />
+                <element signature="e#2472#2493#0" expanded="false" />
+                <element signature="e#2536#3003#0" expanded="false" />
+                <element signature="e#2576#3000#0" expanded="false" />
+                <element signature="e#2629#2669#0" expanded="false" />
+                <element signature="e#2727#2767#0" expanded="false" />
+                <element signature="e#2895#2933#0" expanded="false" />
+                <element signature="e#2939#2976#0" expanded="false" />
                 <element signature="n#!!block;n#CheckLeadingZeros#0" expanded="false" />
-                <element signature="e#3273#3365#0" expanded="false" />
-                <element signature="e#3300#3342#0" expanded="false" />
-                <element signature="e#3322#3338#0" expanded="false" />
-                <element signature="e#3348#3362#0" expanded="false" />
+                <element signature="e#3257#3349#0" expanded="false" />
+                <element signature="e#3284#3326#0" expanded="false" />
+                <element signature="e#3306#3322#0" expanded="false" />
+                <element signature="e#3332#3346#0" expanded="false" />
                 <element signature="n#!!block;n#ReadDirNames#0" expanded="false" />
-                <element signature="e#3504#3526#0" expanded="false" />
-                <element signature="e#3577#3599#0" expanded="false" />
+                <element signature="e#3488#3510#0" expanded="false" />
+                <element signature="e#3561#3583#0" expanded="false" />
                 <element signature="n#!!block;n#CreateLog#0" expanded="false" />
-                <element signature="e#3865#3939#0" expanded="false" />
+                <element signature="e#3849#3923#0" expanded="false" />
                 <element signature="n#!!block;n#CleanLogs#0" expanded="false" />
-                <element signature="e#4086#4118#0" expanded="false" />
-                <element signature="e#4148#4283#0" expanded="false" />
-                <element signature="e#4188#4280#0" expanded="false" />
-                <element signature="e#4249#4276#0" expanded="false" />
+                <element signature="e#4070#4102#0" expanded="false" />
+                <element signature="e#4132#4267#0" expanded="false" />
+                <element signature="e#4172#4264#0" expanded="false" />
+                <element signature="e#4233#4260#0" expanded="false" />
               </folding>
             </state>
           </provider>
@@ -99,9 +92,11 @@
       <file leaf-file-name="utilCounter_test.go" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/utilCounter/utilCounter_test.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="63">
-              <caret line="3" column="9" lean-forward="true" selection-start-line="3" selection-start-column="9" selection-end-line="3" selection-end-column="9" />
-              <folding />
+            <state relative-caret-position="315">
+              <caret line="15" column="0" lean-forward="false" selection-start-line="15" selection-start-column="0" selection-end-line="15" selection-end-column="0" />
+              <folding>
+                <element signature="e#21#42#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -120,10 +115,8 @@
         <entry file="file://C:/go/src/testing/testing_test.go">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="126">
-              <caret line="6" column="7" lean-forward="true" selection-start-line="6" selection-start-column="7" selection-end-line="6" selection-end-column="7" />
-              <folding>
-                <element signature="e#182#209#0" expanded="true" />
-              </folding>
+              <caret line="6" column="7" lean-forward="false" selection-start-line="6" selection-start-column="7" selection-end-line="6" selection-end-column="7" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -157,7 +150,7 @@
       <file leaf-file-name="testing.go" pinned="false" current-in-tab="false">
         <entry file="file://C:/go/src/testing/testing.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-126">
+            <state relative-caret-position="3045">
               <caret line="145" column="51" lean-forward="false" selection-start-line="145" selection-start-column="51" selection-end-line="145" selection-end-column="51" />
               <folding />
             </state>
@@ -241,8 +234,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
-      <pane id="Scratches" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -281,11 +272,13 @@
           <select />
         </subPane>
       </pane>
+      <pane id="Scratches" />
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
     <property name="settings.editor.selected.configurable" value="preferences.pluginManager" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../go_pros_practice" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../tuts" />
     <property name="go.sdk.automatically.set" value="true" />
     <property name="DefaultGoTemplateProperty" value="Go File" />
   </component>
@@ -347,7 +340,6 @@
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="true" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32960895" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32960895" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
@@ -360,6 +352,7 @@
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32960895" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
     <layout-to-restore>
@@ -403,7 +396,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="5355">
           <caret line="255" column="16" lean-forward="false" selection-start-line="255" selection-start-column="16" selection-end-line="255" selection-end-column="16" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -420,7 +412,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="5355">
           <caret line="255" column="16" lean-forward="false" selection-start-line="255" selection-start-column="16" selection-end-line="255" selection-end-column="16" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -478,7 +469,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="7434">
           <caret line="362" column="18" lean-forward="false" selection-start-line="362" selection-start-column="14" selection-end-line="362" selection-end-column="18" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -542,7 +532,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-546">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -550,9 +539,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="126">
           <caret line="6" column="7" lean-forward="true" selection-start-line="6" selection-start-column="7" selection-end-line="6" selection-end-column="7" />
-          <folding>
-            <element signature="e#177#219#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -560,7 +546,37 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="965">
           <caret line="59" column="32" lean-forward="false" selection-start-line="59" selection-start-column="32" selection-end-line="59" selection-end-column="32" />
-          <folding />
+          <folding>
+            <element signature="e#21#108#0" expanded="true" />
+            <element signature="n#!!block;n#Interval10#0" expanded="false" />
+            <element signature="e#2150#2375#0" expanded="false" />
+            <element signature="e#2154#2372#0" expanded="false" />
+            <element signature="e#2165#2368#0" expanded="false" />
+            <element signature="e#2334#2351#0" expanded="false" />
+            <element signature="n#!!block;n#CountAllLogs#0" expanded="false" />
+            <element signature="e#2472#2493#0" expanded="false" />
+            <element signature="e#2536#3003#0" expanded="false" />
+            <element signature="e#2576#3000#0" expanded="false" />
+            <element signature="e#2629#2669#0" expanded="false" />
+            <element signature="e#2727#2767#0" expanded="false" />
+            <element signature="e#2895#2933#0" expanded="false" />
+            <element signature="e#2939#2976#0" expanded="false" />
+            <element signature="n#!!block;n#CheckLeadingZeros#0" expanded="false" />
+            <element signature="e#3257#3349#0" expanded="false" />
+            <element signature="e#3284#3326#0" expanded="false" />
+            <element signature="e#3306#3322#0" expanded="false" />
+            <element signature="e#3332#3346#0" expanded="false" />
+            <element signature="n#!!block;n#ReadDirNames#0" expanded="false" />
+            <element signature="e#3488#3510#0" expanded="false" />
+            <element signature="e#3561#3583#0" expanded="false" />
+            <element signature="n#!!block;n#CreateLog#0" expanded="false" />
+            <element signature="e#3849#3923#0" expanded="false" />
+            <element signature="n#!!block;n#CleanLogs#0" expanded="false" />
+            <element signature="e#4070#4102#0" expanded="false" />
+            <element signature="e#4132#4267#0" expanded="false" />
+            <element signature="e#4172#4264#0" expanded="false" />
+            <element signature="e#4233#4260#0" expanded="false" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -568,7 +584,9 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="168">
           <caret line="8" column="13" lean-forward="true" selection-start-line="8" selection-start-column="13" selection-end-line="8" selection-end-column="13" />
-          <folding />
+          <folding>
+            <element signature="e#21#42#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -576,7 +594,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -584,11 +601,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="189">
           <caret line="9" column="7" lean-forward="true" selection-start-line="9" selection-start-column="7" selection-end-line="9" selection-end-column="7" />
-          <folding>
-            <element signature="e#330#406#0" expanded="false" />
-            <element signature="n#!!block;n#sizedValue#0" expanded="false" />
-            <element signature="e#4966#5611#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -596,9 +608,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="n#!!block;n#TestTBHelper#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -620,49 +629,43 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/utilCounter/utilCounter.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="181">
-          <caret line="68" column="0" lean-forward="false" selection-start-line="68" selection-start-column="0" selection-end-line="68" selection-end-column="0" />
+        <state relative-caret-position="1176">
+          <caret line="66" column="0" lean-forward="false" selection-start-line="66" selection-start-column="0" selection-end-line="66" selection-end-column="0" />
           <folding>
             <element signature="e#21#108#0" expanded="true" />
-            <element signature="n#!!block;n#DumpCounts#0" expanded="false" />
-            <element signature="n#!!block;n#AddUp#0" expanded="false" />
-            <element signature="e#1198#1308#0" expanded="false" />
-            <element signature="e#1233#1255#0" expanded="false" />
-            <element signature="e#1259#1282#0" expanded="false" />
             <element signature="n#!!block;n#Interval10#0" expanded="false" />
-            <element signature="e#2166#2391#0" expanded="false" />
-            <element signature="e#2170#2388#0" expanded="false" />
-            <element signature="e#2180#2384#0" expanded="false" />
-            <element signature="e#2350#2367#0" expanded="false" />
+            <element signature="e#2150#2375#0" expanded="false" />
+            <element signature="e#2154#2372#0" expanded="false" />
+            <element signature="e#2165#2368#0" expanded="false" />
+            <element signature="e#2334#2351#0" expanded="false" />
             <element signature="n#!!block;n#CountAllLogs#0" expanded="false" />
-            <element signature="e#2488#2509#0" expanded="false" />
-            <element signature="e#2552#3019#0" expanded="false" />
-            <element signature="e#2592#3016#0" expanded="false" />
-            <element signature="e#2645#2685#0" expanded="false" />
-            <element signature="e#2743#2783#0" expanded="false" />
-            <element signature="e#2911#2949#0" expanded="false" />
-            <element signature="e#2955#2992#0" expanded="false" />
+            <element signature="e#2472#2493#0" expanded="false" />
+            <element signature="e#2536#3003#0" expanded="false" />
+            <element signature="e#2576#3000#0" expanded="false" />
+            <element signature="e#2629#2669#0" expanded="false" />
+            <element signature="e#2727#2767#0" expanded="false" />
+            <element signature="e#2895#2933#0" expanded="false" />
+            <element signature="e#2939#2976#0" expanded="false" />
             <element signature="n#!!block;n#CheckLeadingZeros#0" expanded="false" />
-            <element signature="e#3273#3365#0" expanded="false" />
-            <element signature="e#3300#3342#0" expanded="false" />
-            <element signature="e#3322#3338#0" expanded="false" />
-            <element signature="e#3348#3362#0" expanded="false" />
+            <element signature="e#3257#3349#0" expanded="false" />
+            <element signature="e#3284#3326#0" expanded="false" />
+            <element signature="e#3306#3322#0" expanded="false" />
+            <element signature="e#3332#3346#0" expanded="false" />
             <element signature="n#!!block;n#ReadDirNames#0" expanded="false" />
-            <element signature="e#3504#3526#0" expanded="false" />
-            <element signature="e#3577#3599#0" expanded="false" />
+            <element signature="e#3488#3510#0" expanded="false" />
+            <element signature="e#3561#3583#0" expanded="false" />
             <element signature="n#!!block;n#CreateLog#0" expanded="false" />
-            <element signature="e#3865#3939#0" expanded="false" />
+            <element signature="e#3849#3923#0" expanded="false" />
             <element signature="n#!!block;n#CleanLogs#0" expanded="false" />
-            <element signature="e#4086#4118#0" expanded="false" />
-            <element signature="e#4148#4283#0" expanded="false" />
-            <element signature="e#4188#4280#0" expanded="false" />
-            <element signature="e#4249#4276#0" expanded="false" />
+            <element signature="e#4070#4102#0" expanded="false" />
+            <element signature="e#4132#4267#0" expanded="false" />
+            <element signature="e#4172#4264#0" expanded="false" />
+            <element signature="e#4233#4260#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -677,7 +680,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/main.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="307">
+        <state relative-caret-position="1869">
           <caret line="122" column="9" lean-forward="false" selection-start-line="122" selection-start-column="9" selection-end-line="122" selection-end-column="9" />
           <folding>
             <element signature="e#14#141#0" expanded="true" />
@@ -701,7 +704,6 @@
             <element signature="e#3283#3942#0" expanded="false" />
             <element signature="e#3295#3325#0" expanded="false" />
             <element signature="e#3329#3924#0" expanded="false" />
-            <element signature="e#3393#3408#0" expanded="false" />
             <element signature="e#3489#3513#0" expanded="false" />
             <element signature="e#3832#3874#0" expanded="false" />
           </folding>
@@ -719,16 +721,14 @@
     <entry file="file://C:/go/src/testing/testing_test.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="126">
-          <caret line="6" column="7" lean-forward="true" selection-start-line="6" selection-start-column="7" selection-end-line="6" selection-end-column="7" />
-          <folding>
-            <element signature="e#182#209#0" expanded="true" />
-          </folding>
+          <caret line="6" column="7" lean-forward="false" selection-start-line="6" selection-start-column="7" selection-end-line="6" selection-end-column="7" />
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://C:/go/src/testing/testing.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-126">
+        <state relative-caret-position="3045">
           <caret line="145" column="51" lean-forward="false" selection-start-line="145" selection-start-column="51" selection-end-line="145" selection-end-column="51" />
           <folding />
         </state>
@@ -744,9 +744,11 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/utilCounter/utilCounter_test.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="63">
-          <caret line="3" column="9" lean-forward="true" selection-start-line="3" selection-start-column="9" selection-end-line="3" selection-end-column="9" />
-          <folding />
+        <state relative-caret-position="315">
+          <caret line="15" column="0" lean-forward="false" selection-start-line="15" selection-start-column="0" selection-end-line="15" selection-end-column="0" />
+          <folding>
+            <element signature="e#21#42#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
